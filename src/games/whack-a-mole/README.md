@@ -17,10 +17,12 @@ clock runs out.
 Each mole you whack scores 10 points. Clicking an empty hole costs nothing.
 
 Your final score is saved to the carnival's score board when the round ends.
+If you go back to the midway part way through a round, the points you have
+so far are saved instead, once.
 
 ## Files
 
 - `game.ts`: the game logic (`createState`, `step`, `popUp`, `whack`,
-  `spawnInterval`, `upTime`) and the `whackAMole` entry, the default export the
+  `spawnInterval`, `upTime`, `reportScore`) and the `whackAMole` entry, the default export the
   midway finds.
 - `game.test.ts`: tests for the game logic.

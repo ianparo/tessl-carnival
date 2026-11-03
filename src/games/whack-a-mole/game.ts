@@ -29,6 +29,8 @@ export interface WhackAMoleState {
   nextSpawn: number;
   score: number;
   phase: 'playing' | 'over';
+  /** Whether this round's score has gone to the score board. */
+  recorded: boolean;
 }
 
 export function createState(): WhackAMoleState {
@@ -47,6 +49,7 @@ export function createState(): WhackAMoleState {
     nextSpawn: SPAWN_INTERVAL.start,
     score: 0,
     phase: 'playing',
+    recorded: false,
   };
 }
 
@@ -114,6 +117,20 @@ export function step(state: WhackAMoleState, dt: number, random: () => number = 
     popUp(state, random);
     state.nextSpawn += spawnInterval(state);
   }
+}
+
+/**
+ * Sends the round's score to the score board, once per round. A round ends
+ * when the clock runs out or when the player leaves the booth part way through.
+ */
+export function reportScore(
+  state: WhackAMoleState,
+  record: (score: number) => void = (score) => recordScore(whackAMole.id, score),
+): boolean {
+  if (state.recorded) return false;
+  record(state.score);
+  state.recorded = true;
+  return true;
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: WhackAMoleState) {
@@ -204,7 +221,6 @@ export const whackAMole: CarnivalGame = {
     canvas.height = HEIGHT;
 
     let state = createState();
-    let scoreRecorded = false;
 
     const onDown = (event: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -212,7 +228,6 @@ export const whackAMole: CarnivalGame = {
       const y = ((event.clientY - rect.top) / rect.height) * HEIGHT;
       if (state.phase === 'over') {
         state = createState();
-        scoreRecorded = false;
       } else {
         whack(state, x, y);
       }
@@ -226,10 +241,7 @@ export const whackAMole: CarnivalGame = {
       const dt = Math.min((time - last) / 1000, 0.05);
       last = time;
       step(state, dt);
-      if (state.phase === 'over' && !scoreRecorded) {
-        recordScore(whackAMole.id, state.score);
-        scoreRecorded = true;
-      }
+      if (state.phase === 'over') reportScore(state);
       draw(ctx, state);
       frame = requestAnimationFrame(loop);
     };
@@ -238,6 +250,8 @@ export const whackAMole: CarnivalGame = {
     return () => {
       cancelAnimationFrame(frame);
       canvas.removeEventListener('pointerdown', onDown);
+      // Leaving part way through a round still counts the points earned so far.
+      if (state.phase === 'playing') reportScore(state);
     };
   },
 };

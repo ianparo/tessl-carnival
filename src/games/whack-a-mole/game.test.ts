@@ -6,6 +6,7 @@ import {
   ROWS,
   createState,
   popUp,
+  reportScore,
   spawnInterval,
   step,
   upTime,
@@ -97,5 +98,29 @@ describe('whack-a-mole', () => {
     state.phase = 'over';
     expect(whack(state, hole.x, hole.y)).toBe(false);
     expect(state.score).toBe(0);
+  });
+
+  it('records the score once when the player leaves part way through a round', () => {
+    const state = createState();
+    state.score = 3 * POINTS_PER_WHACK;
+    const recorded: number[] = [];
+    expect(reportScore(state, (score) => recorded.push(score))).toBe(true);
+    expect(reportScore(state, (score) => recorded.push(score))).toBe(false);
+    expect(recorded).toEqual([3 * POINTS_PER_WHACK]);
+  });
+
+  it('does not record a finished round again when the player leaves', () => {
+    const state = createState();
+    state.score = POINTS_PER_WHACK;
+    state.timeLeft = 0.1;
+    step(state, 0.2);
+    const recorded: number[] = [];
+    reportScore(state, (score) => recorded.push(score));
+    expect(reportScore(state, (score) => recorded.push(score))).toBe(false);
+    expect(recorded).toEqual([POINTS_PER_WHACK]);
+  });
+
+  it('starts a new round with nothing recorded', () => {
+    expect(createState().recorded).toBe(false);
   });
 });
